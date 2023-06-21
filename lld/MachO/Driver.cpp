@@ -514,12 +514,18 @@ void macho::parseLCLinkerOption(InputFile *f, unsigned argc, StringRef data) {
 }
 
 static void addFileList(StringRef path, bool isLazy) {
-  std::optional<MemoryBufferRef> buffer = readFile(path);
+  auto pair = path.split(',');
+  std::optional<MemoryBufferRef> buffer = readFile(pair.first);
   if (!buffer)
     return;
   MemoryBufferRef mbref = *buffer;
-  for (StringRef path : args::getLines(mbref))
-    addFile(rerootPath(path), LoadType::CommandLine, isLazy);
+  for (StringRef path : args::getLines(mbref)) {
+    std::string realPath = pair.second.str() + "/" + path.str();
+    if (pair.second.empty()) {
+      realPath = path.str();
+    }
+    addFile(rerootPath(StringRef(realPath)), LoadType::CommandLine, isLazy);
+  }
 }
 
 // We expect sub-library names of the form "libfoo", which will match a dylib
